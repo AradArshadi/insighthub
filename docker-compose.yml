@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # Database
   postgres:
     image: postgres:15-alpine
     environment:
@@ -12,14 +11,14 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    # Windows fix: Use healthcheck that works on Windows
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U insighthub"]
+      test: ["CMD-SHELL", "pg_isready -U insighthub || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
-  # Redis for caching and Celery
   redis:
     image: redis:7-alpine
     ports:
@@ -28,19 +27,23 @@ services:
       - redis_data:/data
     command: redis-server --appendonly yes
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # Django Application
   backend:
     build:
       context: .
       dockerfile: docker/Dockerfile.backend
     volumes:
+      # Windows path fix: Use relative paths
       - ./backend:/app
       - ./logs:/app/logs
+      # Windows Docker Desktop volume mount fix
+      - type: bind
+        source: ./backend
+        target: /app
     ports:
       - "8000:8000"
     environment:
@@ -48,8 +51,11 @@ services:
       - DATABASE_URL=postgresql://insighthub:insighthub_pass@postgres:5432/insighthub_dev
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
-      - YELP_API_KEY=${YELP_API_KEY:-test_key}
-      - GOOGLE_PLACES_API_KEY=${GOOGLE_PLACES_API_KEY:-test_key}
+      - PYTHONUNBUFFERED=1  # Important for Windows
+      - PYTHONDONTWRITEBYTECODE=1
+    # Windows fix: Add stdin_open and tty for interactive sessions
+    stdin_open: true
+    tty: true
     depends_on:
       postgres:
         condition: service_healthy
@@ -60,7 +66,6 @@ services:
              python manage.py createcachetable &&
              python manage.py runserver 0.0.0.0:8000"
 
-  # Celery Worker
   celery_worker:
     build:
       context: .
@@ -79,7 +84,6 @@ services:
       - postgres
     command: celery -A config worker --loglevel=info
 
-  # Celery Beat (Scheduler)
   celery_beat:
     build:
       context: .
@@ -98,29 +102,8 @@ services:
       - postgres
     command: celery -A config beat --loglevel=info
 
-  # Monitoring (Prometheus + Grafana)
-  prometheus:
-    image: prom/prometheus:latest
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./infrastructure/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./infrastructure/monitoring/dashboards:/etc/grafana/provisioning/dashboards
-    depends_on:
-      - prometheus
-
 volumes:
   postgres_data:
+    driver: local
   redis_data:
-  prometheus_data:
-  grafana_data:
+    driver: local

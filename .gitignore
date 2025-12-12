@@ -1,3 +1,71 @@
+# Windows-specific
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+Desktop.ini
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.stackdump
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.vcxproj*.filters
+*.vcxproj.user
+*.db
+*.opendb
+*.db-shm
+*.db-wal
+*.exe
+*.msix
+*.msixbundle
+*.appx
+*.appxbundle
+*.7z
+*.dmg
+*.tar.gz
+*.iso
+*.bin
+*.dat
+*.reg
+*.bat
+*.cmd
+*.ps1
+*.tmp
+*.temp
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk
+
 # Django
 *.log
 *.pot

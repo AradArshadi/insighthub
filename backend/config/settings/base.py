@@ -6,6 +6,31 @@ import os
 from pathlib import Path
 from datetime import timedelta
 import environ
+import platform
+
+IS_WINDOWS = platform.system() == 'Windows'
+
+# Update database settings for Windows Docker
+if IS_WINDOWS:
+    # Windows Docker Desktop uses host.docker.internal
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': env.str('DB_NAME', 'insighthub_dev'),
+            'USER': env.str('DB_USER', 'insighthub'),
+            'PASSWORD': env.str('DB_PASSWORD', 'insighthub_pass'),
+            'HOST': env.str('DB_HOST', 'host.docker.internal'),
+            'PORT': env.int('DB_PORT', 5432),
+        }
+    }
+else:
+    DATABASES = {
+        'default': env.db(
+            'DATABASE_URL',
+            default='postgresql://insighthub:insighthub_pass@localhost:5432/insighthub_dev'
+        )
+    }
+
 
 # Initialize environment variables
 env = environ.Env()
